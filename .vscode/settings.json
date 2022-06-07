@@ -1,0 +1,7 @@
+{
+    "verilog.linting.linter": "verilator",
+    "files.associations": {
+        "vector": "cpp",
+        "type_traits": "cpp"
+    }
+}
