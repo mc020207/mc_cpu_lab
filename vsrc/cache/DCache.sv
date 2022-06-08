@@ -4,27 +4,12 @@
 `ifdef VERILATOR
 `include "include/common.sv"
 /* You should not add any additional includes in this file */
-`include "ram/RAM_SinglePort.sv"
 `endif
 
 module DCache 
 	import common::*; #(
 		/* You can modify this part to support more parameters */
 		/* e.g. OFFSET_BITS, INDEX_BITS, TAG_BITS */
-        parameter int SET_NUM        = 8,
-        parameter int ASSOCIATIVITY  = 2,
-        parameter int WORDS_PER_LINE = 16,
-        
-        localparam int INDEX_BITS     = $clog2(SET_NUM),
-        localparam int COUNTER_BITS   = $clog2(ASSOCIATIVITY),
-        localparam int OFFSET_BITS    = $clog2(WORDS_PER_LINE),
-        localparam int TAG_BITS       = 64 - INDEX_BITS - OFFSET_BITS - 3,
-
-        localparam type index_t       = logic[INDEX_BITS   - 1 : 0],
-        localparam type counter_t     = logic[COUNTER_BITS - 1 : 0],
-        localparam type offset_t      = logic[OFFSET_BITS  - 1 : 0],
-        localparam type tag_t         = logic[TAG_BITS     - 1 : 0]
-
 	)(
 	input logic clk, reset,
 
@@ -37,344 +22,323 @@ module DCache
 `ifndef REFERENCE_CACHE
 
 	/* TODO: Lab3 Cache */
-
-    /**
-     * typedefs and functions
-     */
-    // cache states
-	typedef enum u2 {
-		IDLE, 
-        FLUSH,
-        FETCH,
-        DIRECT_FETCH
-	} state_t;
-    // meta and set(ASSOCIATIVITY meta)
-    typedef struct packed {
-        u1 valid, dirty;
-        counter_t age;
-        tag_t tag;
+    typedef struct packed{
+        u1 valid;
+        u1 dirty;
+        u54 tag;
     } meta_t;
-    typedef struct packed {
-        counter_t cnt;
-        meta_t[ASSOCIATIVITY - 1 : 0] meta;
-    } set_t;
-    // get addr info
-    function offset_t get_offset(addr_t addr);
-        return addr[OFFSET_BITS + 3 - 1 : 3];
-    endfunction
-    function index_t get_index(addr_t addr);
-        return addr[INDEX_BITS + OFFSET_BITS + 3 - 1 : OFFSET_BITS + 3];
-    endfunction
-    function tag_t get_tag(addr_t addr);
-        return addr[TAG_BITS + INDEX_BITS + OFFSET_BITS + 3 - 1 : INDEX_BITS + OFFSET_BITS + 3];
-    endfunction
+    typedef enum logic[2:0] {
+        COMPARETAG,READY,FETCH,WRITEBACK,FINAL,WRITEREADY
+    }state_t;
+    typedef struct packed{
+        u1 cnt;
+        meta_t meta1;
+        meta_t meta2;
+    } meta_union;
+    // control meta_ram
+    meta_union metaread,metawrite,metarecord;
+    //meta_t meta_choose;
+    u1 meta_valid;
+    u1 meta_strobe;
+    u3 meta_addr;
+    // control data_ram
+    word_t dataread,datawrite;
+    u1 data_valid;
+    u8 data_strobe;
+    u8 data_addr;
 
-
-    /**
-     * variables ahead
-     */
-    // control info
-    u1 cached_request, uncached_request; // if is request
-    u1 hit; // if cache is hit
-    u1 dirty; // if cache is dirty
-    u1 is_write; // if this instr is memwrite
-    u1 is_ok; // if memdata is prepared
-    // important status
-    state_t state, state_nxt; // cache state
-    meta_t meta_new, meta; // meta
-    set_t set_new, set; // set
-    word_t word_new, word; // data
-    // assign control info
-    assign cached_request = dreq.valid && (dreq.addr[31] != 1'b0);
-    assign uncached_request = dreq.valid && (dreq.addr[31] == 1'b0);
-    assign dirty = meta.dirty;
-    assign is_write = dreq.strobe != '0;
-    always_comb begin
-        is_ok = (cresp.last == 1'b1);
-        if(state == DIRECT_FETCH) begin 
-            is_ok = (cresp.ready == 1'b1);
-        end
-    end
-
-
-    /**
-     * update state of cache
-     */
-    // get state_nxt
-    always_comb begin 
-        state_nxt = state; // default
-        unique case(state)
-            IDLE: begin 
-                if(cached_request && hit) begin
-                    state_nxt = IDLE;
-                end else if(cached_request && !hit && dirty) begin
-                    state_nxt = FLUSH;
-                end else if(cached_request && !hit && !dirty) begin
-                    state_nxt = FETCH;
-                end else if(uncached_request) begin 
-                    state_nxt = DIRECT_FETCH;
-                end else begin
-                    state_nxt = IDLE;
-                end
-            end
-            FLUSH: begin 
-                if(is_ok) begin 
-                    state_nxt = FETCH;
-                end else begin 
-                    state_nxt = FLUSH;
-                end
-            end
-            FETCH: begin
-                if(is_ok) begin 
-                    state_nxt = IDLE;
-                end else begin 
-                    state_nxt = FETCH;
-                end
-            end
-            DIRECT_FETCH: begin 
-                if(is_ok) begin 
-                    state_nxt = IDLE;
-                end else begin 
-                    state_nxt = DIRECT_FETCH;
-                end
-            end
-            default: begin end
-        endcase
-    end
-    // update state
-    always_ff @(posedge clk) begin 
-        if(reset) begin 
-            state <= IDLE;
-        end else begin 
-            state <= state_nxt;
-        end
-    end
-
-
-    /**
-     * main process of cache: 
-     * fetch set, fetch meta, fetch date, replace, writeback
-     */
-    // get set & update meta_ram
-    logic[INDEX_BITS : 0] reset_cnt, reset_cnt_nxt;  // 0~SET_NUM-1
-    u1 reset_cache;
-    u1 update_meta_ram;
-    index_t set_addr;
-    always_comb begin
-        if(reset && (reset_cnt < SET_NUM[INDEX_BITS : 0])) begin
-            reset_cnt_nxt = reset_cnt + 1'b1;
-            reset_cache = 1'b1;
-        end else if(reset && reset_cnt >= SET_NUM[INDEX_BITS : 0]) begin 
-            reset_cnt_nxt = reset_cnt;
-            reset_cache = 1'b0;
-        end else begin
-            reset_cnt_nxt = '0;
-            reset_cache = 1'b0;
-        end
-    end
-    always_ff @(posedge clk) begin 
-        if(reset) begin
-            reset_cnt <= reset_cnt_nxt;
-        end else begin
-            reset_cnt <= '0;
-        end
-    end
-    assign update_meta_ram = (!reset && (
-                             (state == IDLE && cached_request && hit) || // if hit
-                             (state == IDLE && cached_request && !hit && !dirty) || // if not FLUSH but enter FETCH
-                             (state == FLUSH && is_ok) ) ) || // if finish FLUSH
-                             reset_cache; // if need to reset_cache
-    assign set_addr = reset_cache ? 
-                        reset_cnt[INDEX_BITS - 1 : 0] : 
-                        get_index(dreq.addr);
+    state_t state=COMPARETAG;
     RAM_SinglePort #(
-        .ADDR_WIDTH(INDEX_BITS),
-        .DATA_WIDTH($bits(set_t)),
-        .BYTE_WIDTH($bits(set_t)),
-        .MEM_TYPE(0),
-        .READ_LATENCY(0)
-    ) meta_ram (
-        .clk,
-        .en(update_meta_ram),
-        .addr(set_addr),
-        .strobe('1),
-        .wdata(set_new),
-        .rdata(set)
-    );
-    // get meta & compose meta_new & compose set_new
-    counter_t max;
-    u1 is_replaced;
-    counter_t pos;
-    always_comb begin 
-        {hit, max, is_replaced, pos} = '0;
-        // try to hit and find pos
-        for(int i = 0; i < ASSOCIATIVITY; i++) begin
-            if(set.meta[i].valid && set.meta[i].tag == get_tag(dreq.addr)) begin 
-                hit = 1'b1;
-                pos = i[COUNTER_BITS - 1 : 0];
-                break;
-            end
-        end
-        // if not hit, find replacement using LRU
-        if(!hit) begin
-            is_replaced = 1'b1;
-            for(int j = 0; j < ASSOCIATIVITY; j++) begin
-                if(!set.meta[j].valid) begin 
-                    pos = j[COUNTER_BITS - 1 : 0];
-                    break;
-                end else if(set.meta[j].valid && max < set.meta[j].age) begin 
-                    max = set.meta[j].age;
-                    pos = j[COUNTER_BITS - 1 : 0];
-                end
-            end
-        end
-        // get meta
-        meta = set.meta[pos];
-        // compose meta_new
-        meta_new.valid = '1;
-        meta_new.age   = '0;
-        if(is_replaced) begin 
-            meta_new.dirty = is_write;
-            meta_new.tag   = get_tag(dreq.addr);
-        end else begin 
-            meta_new.dirty = meta.dirty ? meta.dirty : is_write;
-            meta_new.tag   = meta.tag;
-        end
-        // compose set_new
-        if(reset_cache) begin
-            set_new = '0;
-        end else begin
-            for(int l = 0; l < ASSOCIATIVITY; l++) begin
-                set_new.cnt = pos;
-                if(l[COUNTER_BITS - 1 : 0] == pos) begin
-                    set_new.meta[l] = meta_new;
-                end else begin
-                    set_new.meta[l].valid = set.meta[l].valid;
-                    set_new.meta[l].dirty = set.meta[l].dirty;
-                    set_new.meta[l].age = (set.meta[l].valid && set.meta[l].age < set.meta[pos].age) ?
-                                            set.meta[l].age + 1'b1 : set.meta[l].age; 
-                                            // recursively do this will not add 1 because it's set to 0
-                    set_new.meta[l].tag = set.meta[l].tag;
-                end
-            end
-        end
-    end
-    // fetch word & update data_cache
-    u1 update_data_ram;
-    offset_t flush_offset, flush_offset_nxt, fetch_offset, fetch_offset_nxt;
-    logic[$clog2(SET_NUM * ASSOCIATIVITY * WORDS_PER_LINE) - 1 : 0] data_addr;
-    assign update_data_ram = (state == IDLE && hit && is_write) || // if hit and write data
-                             (state == FETCH && cresp.ready); // if fetch and update data
-    always_comb begin
-        flush_offset_nxt = '0;
-        if(state == FLUSH && !cresp.ready) begin 
-            flush_offset_nxt = flush_offset;
-        end else if(state == FLUSH && cresp.ready && !is_ok) begin
-            flush_offset_nxt = flush_offset + 1'b1;
-        end
-    end
-    always_ff @(posedge clk) begin 
-        if(reset) begin 
-            flush_offset <= '0;
-        end else begin
-            flush_offset <= flush_offset_nxt;
-        end
-    end
-    always_comb begin
-        fetch_offset_nxt = '0;
-        if(state == FETCH && !cresp.ready) begin 
-            fetch_offset_nxt = fetch_offset;
-        end else if(state == FETCH && cresp.ready && !is_ok) begin 
-            fetch_offset_nxt = fetch_offset + 1'b1;
-        end
-    end
-    always_ff @(posedge clk) begin 
-        if(reset) begin 
-            fetch_offset <= '0;
-        end else begin
-            fetch_offset <= fetch_offset_nxt;
-        end
-    end
-    u1 placehoder;
-    always_comb begin
-        {placehoder, data_addr} = '0;
-        if((state == IDLE && cached_request && hit)) begin 
-            {placehoder, data_addr} = ({5'b0, set_addr} * 'd2 + {7'b0, pos}) * 'd16 + {5'b0, get_offset(dreq.addr)};
-        end else if(state == FLUSH) begin 
-            {placehoder, data_addr} = ({5'b0, set_addr} * 'd2 + {7'b0, pos}) * 'd16 + {5'b0, flush_offset};
-        end else if(state == FETCH) begin 
-            {placehoder, data_addr} = ({5'b0, set_addr} * 'd2 + {7'b0, pos}) * 'd16 + {5'b0, fetch_offset};
-        end
-    end
-    RAM_SinglePort #(
-        .ADDR_WIDTH($clog2(SET_NUM * ASSOCIATIVITY * WORDS_PER_LINE)),
-        .DATA_WIDTH($bits(word_t)),
-        .BYTE_WIDTH($bits(word_t)),
+        .ADDR_WIDTH(8),
+        .DATA_WIDTH(64),
+        .BYTE_WIDTH(8),
         .MEM_TYPE(0),
         .READ_LATENCY(0)
     ) data_ram (
-        .clk,
-        .en(update_data_ram),
+        .clk,  .en(data_valid),
         .addr(data_addr),
-        .strobe('1),
-        .wdata(word_new),
-        .rdata(word)
+        .strobe(data_strobe),
+        .wdata(datawrite),
+        .rdata(dataread)
     );
-    // compose word_new
-    always_comb begin 
-        word_new = '0;
-        if(state == IDLE && hit) begin 
-            word_new = word;
-            for(int i = 0; i < 8; i++) begin 
-                if(dreq.strobe[i]) begin 
-                    word_new[(8*(i+1)-1)-:8] = dreq.data[(8*(i+1)-1)-:8];
+
+    RAM_SinglePort #(
+        .ADDR_WIDTH(3),
+        .DATA_WIDTH($size(meta_union)),
+        .BYTE_WIDTH($size(meta_union)),
+        .MEM_TYPE(0),
+        .READ_LATENCY(0)
+    ) meta_ram (
+        .clk,  .en(meta_valid),
+        .addr(meta_addr),
+        .strobe(meta_strobe),
+        .wdata(metawrite),
+        .rdata(metaread)
+    );
+    
+    u1 uncache;
+    u2 hit;// hit[1] 是否命中 hit[0] 命中编号
+    u54 tag;
+    u3 hash;
+    u4 wordaddr;
+    u4 index;
+    u3 reset_metaindex=-1;
+    u8 reset_dataindex=-1;
+    assign tag=dreq.addr[63:10];
+    assign hash=dreq.addr[9:7];
+    assign wordaddr=dreq.addr[6:3];
+    assign uncache=dreq.valid&(~dreq.addr[31]);
+    
+    assign dresp.data=reset?'0:(uncache?cresp.data:dataread);
+    assign dresp.data_ok=reset?0:(uncache?cresp.ready:((state==READY&&dreq.strobe==0)||state==WRITEREADY))&dreq.valid;
+    assign dresp.addr_ok=1;
+
+    assign meta_valid=reset?1:((uncache)?0:dreq.valid&(~uncache));
+    assign meta_addr=reset?reset_metaindex:hash;
+    assign meta_strobe=(reset||state==FETCH)?1:((state==READY)?(dreq.strobe!=0):0);
+    //assign metawrite=replace?
+    
+    assign data_valid=reset?1:((uncache)?0:dreq.valid);
+    assign data_addr=reset?reset_dataindex:(state==WRITEBACK||state==FETCH)?{hash,hit[0],index}:{hash,hit[0],wordaddr};
+    assign data_strobe=(reset||state==FETCH)?8'b11111111:((((state==COMPARETAG||state==READY)&&hit[1])||state==FINAL)?dreq.strobe:0);
+    assign datawrite=reset?'0:(state==FETCH)?cresp.data:dreq.data;
+
+    assign creq.valid=(uncache|(state==FETCH)|(state==WRITEBACK))&dreq.valid;
+    assign creq.addr=uncache?dreq.addr:((state==WRITEBACK)?{hit[0]?metarecord.meta2.tag:metarecord.meta1.tag,hash,7'b0}:{dreq.addr[63:7],7'b0});
+    assign creq.is_write=uncache?(dreq.strobe!=0):(state==WRITEBACK);
+    assign creq.size=uncache?(dreq.size):MSIZE8;
+    assign creq.strobe=uncache?(dreq.strobe):8'b11111111;
+    assign creq.data=uncache?(dreq.data):dataread;
+    assign creq.len=uncache?MLEN1:MLEN16;
+    assign creq.burst=uncache?AXI_BURST_FIXED:AXI_BURST_INCR;
+    always_comb begin
+        // unique case(state)
+        //     COMPARETAG:begin
+        //         metarecord=metaread;
+        //         if(metaread.meta1.tag==tag) begin
+        //             hit=2'b10;
+        //             state_next=READY;
+        //         end
+        //         else if (metaread.meta2.tag==tag) begin
+        //             hit=2'b01;
+        //             state_next=READY;
+        //         end
+        //         else if (metaread.meta1.valid==0) begin
+        //             hit=2'b00;
+        //             state_next=FETCH;
+        //         end
+        //         else if (metaread.meta2.valid==0) begin
+        //             hit=2'b01;
+        //             state_next=FETCH;
+        //         end
+        //         else begin
+        //             hit[0]=1'b0;
+        //             hit[1]=metaread.cnt;
+        //             state_next=(((~hit[1])&metaread.meta1.dirty)|(hit[1]&metaread.meta2.dirty))?WRITEBACK:FETCH;
+        //         end
+        //     end
+        //     WRITEBACK : begin
+        //         if (cresp.last) state_next=FETCH;
+        //         else state_next=WRITEBACK;
+        //     end
+        //     FETCH : begin
+        //         metawrite.cnt=!metarecord.cnt;
+        //         if (hit[1]==0) begin
+        //             metawrite.meta2=metarecord.meta2;
+        //             metawrite.meta1={2'b10,tag};
+        //         end
+        //         if (cresp.last) state_next=COMPARETAG;
+        //         else state_next=FETCH;
+        //     end
+        //     READY : begin
+        //         state_next=COMPARETAG;
+        //     end
+        //     default : begin
+                
+        //     end
+        // endcase
+    end
+    u1 debug;
+    //u1 fetchwait=0;
+    u1 debug2;
+    assign debug2=(dreq.valid&&hash==3'b001&&state==FETCH);
+    //assign debug=((dreq.addr[63:7])==debug2[63:7]);
+    u1 debug3;
+    assign debug3=(dreq.valid&&hash==3'b001&&meta_strobe==1);
+    assign debug=(state==WRITEBACK);
+    always_ff @( posedge clk ) begin
+        if (reset) begin
+            state<=COMPARETAG;
+            // if(reset_metaindex[0]==X) reset_metaindex=0;
+            // if(reset_dataindex[0]==X) reset_dataindex=0;
+            reset_metaindex<=reset_metaindex+1;
+            reset_dataindex<=reset_dataindex+1;
+            metawrite.cnt<=0;
+            metawrite.meta1.valid<=0;
+            metawrite.meta1.dirty<=0;
+            metawrite.meta1.tag<=0;
+            metawrite.meta2.valid<=0;
+            metawrite.meta2.dirty<=0;
+            metawrite.meta2.tag<=0;
+            //datawrite=0;
+        end
+        else if (~dreq.valid) begin
+            state<=COMPARETAG;
+        end
+        else begin 
+            //state_next<=state;
+            unique case(state)
+                COMPARETAG:begin
+                    index<=0;
+                    metarecord<=metaread;
+                    if(metaread.meta1.tag==tag) begin
+                        hit<=2'b10;
+                        state<=READY;
+                        //meta_choose<=metaread.meta1;
+                    end
+                    else if (metaread.meta2.tag==tag) begin
+                        hit<=2'b11;
+                        state<=READY;
+                        //meta_choose<=metaread.meta2;
+                    end
+                    else if (metaread.meta1.valid==0) begin
+                        hit<=2'b00;
+                        state<=FETCH;
+                        //meta_choose<=metaread.meta1;
+                    end
+                    else if (metaread.meta2.valid==0) begin
+                        hit<=2'b01;
+                        state<=FETCH;
+                        //meta_choose<=metaread.meta2;
+                    end
+                    else begin
+                        hit[1]<=1'b0;
+                        hit[0]<=metaread.cnt;
+                        state<=(((~metaread.cnt)&metaread.meta1.dirty)|(metaread.cnt&metaread.meta2.dirty))?WRITEBACK:FETCH;
+                        //meta_choose=hit[1]?metaread.meta2:metaread.meta1;
+                    end
+                    if (dreq.strobe!=0) begin
+                        metawrite.cnt<=metaread.cnt;
+                        if (metaread.meta1.tag==tag) begin
+                            metawrite.meta2<=metaread.meta2;
+                            metawrite.meta1<={2'b11,metaread.meta1.tag};
+                        end
+                        else if(metaread.meta2.tag==tag) begin
+                            metawrite.meta1<=metaread.meta1;
+                            metawrite.meta2<={2'b11,metaread.meta2.tag};
+                        end
+                    end
                 end
-            end
-        end else if(state == FETCH && cresp.ready) begin 
-            word_new = cresp.data;
-        end
+                WRITEBACK : begin
+                    if (cresp.last) begin
+                        state<=FETCH;
+                        index<=0;
+                    end
+                    else if (cresp.ready)begin
+                        state<=WRITEBACK;
+                        index<=index+1;
+                    end 
+                    else state<=WRITEBACK;
+                end
+                FETCH : begin
+                    metawrite.cnt<=~metarecord.cnt;
+                    if (hit[0]==0) begin
+                        metawrite.meta2<=metarecord.meta2;
+                        metawrite.meta1<={2'b10,tag};
+                    end
+                    else begin
+                        metawrite.meta1<=metarecord.meta1;
+                        metawrite.meta2<={2'b10,tag};
+                    end
+                    /*if (fetchwait) begin
+                        state<=COMPARETAG;
+                        fetchwait<=0;
+                        index<=0;
+                    end
+                    else*/ if (cresp.last) begin
+                        // state<=FETCH;
+                        // fetchwait<=1;
+                        state<=FINAL;
+                        index<=0;
+                    end
+                    else if (cresp.ready)begin
+                        state<=FETCH;
+                        index<=index+1;
+                        //fetchwait<=0;
+                    end 
+                    else begin
+                        state<=FETCH;
+                        //fetchwait<=0;
+                    end 
+                end
+                FINAL:begin
+                    index<=0;
+                    state<=READY;
+                    if (dreq.strobe!=0) begin
+                        if (hit[0]==0) begin
+                            metawrite.meta2<=metarecord.meta2;
+                            metawrite.meta1<={2'b11,metaread.meta1.tag};
+                        end
+                        else begin
+                            metawrite.meta1<=metarecord.meta1;
+                            metawrite.meta2<={2'b11,metaread.meta2.tag};
+                        end
+                    end
+                end
+                READY : begin
+                    if (dreq.strobe==0) begin
+                        state<=COMPARETAG;
+                        hit<=2'b00; 
+                        if (hit[0]==0) begin
+                            metawrite.meta2<=metarecord.meta2;
+                            metawrite.meta1<={2'b11,metaread.meta1.tag};
+                        end
+                        else begin
+                            metawrite.meta1<=metarecord.meta1;
+                            metawrite.meta2<={2'b11,metaread.meta2.tag};
+                        end
+                    end
+                    else begin
+                        state<=WRITEREADY;
+                        // if (hit[0]==0) begin
+                        //     metawrite.meta2<=metarecord.meta2;
+                        //     metawrite.meta1<={2'b11,metaread.meta1.tag};
+                        // end
+                        // else begin
+                        //     metawrite.meta1<=metarecord.meta1;
+                        //     metawrite.meta2<={2'b11,metaread.meta2.tag};
+                        // end
+                    end
+                end
+                WRITEREADY:begin
+                    state<=COMPARETAG;
+                    hit<=2'b00; 
+                end
+                default : begin
+                    
+                end
+            endcase
+        end 
+        // if (dreq.valid) begin
+        //     if (state==WRITEBACK||state==FETCH) begin
+        //         if (cresp.last) index=-1;
+        //         else if (cresp.ready) index+=1;
+        //     end
+        //     else index=-1;
+        //     state=state_next;
+        // end
+        // else begin
+        //     state=COMPARETAG;
+        //     index=-1;
+        // end
     end
-
-
-    /**
-     * creq&dresp driver
-     */
-    // creq
-    assign creq.valid = (state == FLUSH) || (state == FETCH) || (state == DIRECT_FETCH);
-    assign creq.is_write = (state == FLUSH) || (state == DIRECT_FETCH && is_write);
-    always_comb begin
-        creq.addr = {get_tag(dreq.addr), get_index(dreq.addr), 7'b0};
-        if(state == FLUSH) begin 
-            creq.addr = {meta.tag, get_index(dreq.addr), 7'b0};
-        end else if(uncached_request) begin 
-            creq.addr = dreq.addr;
-        end
-    end
-    always_comb begin
-        creq.size = MSIZE8;
-        creq.len  = MLEN16;
-        creq.burst = AXI_BURST_INCR;
-        creq.data = word;
-        creq.strobe = '1;
-        if(uncached_request) begin 
-            creq.size = dreq.size;
-            creq.len  = MLEN1;
-            creq.burst = AXI_BURST_FIXED;
-            creq.data = dreq.data;
-            creq.strobe = dreq.strobe;
-        end
-    end
-    // dresp
-    assign dresp.addr_ok = (cached_request || uncached_request) && (state == IDLE);
-    assign dresp.data_ok = ((state == IDLE && cached_request && hit) || (state == DIRECT_FETCH && is_ok));
-    always_comb begin 
-        dresp.data = word;
-        if(uncached_request) begin 
-            dresp.data = cresp.data;
-        end
-    end
-
-
+/************************************************************************************/   
+/************************************************************************************/   
+/************************************************************************************/   
+/************************************************************************************/   
+/************************************************************************************/   
+/************************************************************************************/   
+/************************************************************************************/   
 `else
 
 	typedef enum u2 {
@@ -384,24 +348,25 @@ module DCache
 		FLUSH
 	} state_t /* verilator public */;
 
-	// typedefs
+// typedefs
     typedef union packed {
         word_t data;
         u8 [7:0] lanes;
     } view_t;
 
-    // typedef u4 offset_t;
+    typedef u4 offset_t;
 
-    // registers
+// registers
     state_t    state /* verilator public_flat_rd */;
     dbus_req_t req;  // dreq is saved once addr_ok is asserted.
     offset_t   offset;
 
-    // wires
+// wires
     offset_t start;
     assign start = dreq.addr[6:3];
+    
 
-    // the RAM
+// the RAM
     struct packed {
         logic    en;
         strobe_t strobe;
@@ -439,12 +404,12 @@ module DCache
         .rdata(ram_rdata)
     );
 
-    // DBus driver
+// DBus driver
     assign dresp.addr_ok = state == IDLE;
     assign dresp.data_ok = state == READY;
     assign dresp.data    = ram_rdata;
 
-    // CBus driver
+// CBus driver
     assign creq.valid    = state == FETCH || state == FLUSH;
     assign creq.is_write = state == FLUSH;
     assign creq.size     = MSIZE8;
@@ -454,7 +419,7 @@ module DCache
     assign creq.len      = MLEN16;
 	assign creq.burst	 = AXI_BURST_INCR;
 
-    // the FSM
+// the FSM
     always_ff @(posedge clk)
     if (~reset) begin
         unique case (state)

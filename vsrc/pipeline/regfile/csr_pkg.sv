@@ -20,6 +20,7 @@ package csr_pkg;
 	parameter u12 CSR_MCYCLE = 12'hb00;
 	parameter u12 CSR_MTVAL = 12'h343;
 
+
 	typedef struct packed {
 		u1 sd;
 		logic [MXLEN-2-36:0] wpri1;
@@ -53,23 +54,23 @@ package csr_pkg;
 		u44 ppn;
 	} satp_t;
 	
+	
+
 	typedef struct packed {
 		u64
 		mhartid, // Hardware thread Id, read-only as 0 in this work
-		mie,	 // √ Machine Interrupt Enable 它指出处理器目前能处理和必须忽略的中断 Machine interrupt-enable register
-		mip,	 // √ Machine interrupt pending 它列出目前正准备处理的中断
-		mtvec;	 // √ Machine Trap Vector 它保存发生异常时处理器需要跳转到的地址 Machine trap-handler base address
-
+		mie,	 // Machine interrupt-enable register
+		mip,	 // Machine interrupt pending
+		mtvec;	 // Machine trap-handler base address
 		mstatus_t
-		mstatus; // √ Machine Status 它保存全局中断使能，以及许多其他的状态 Machine status register
-
+		mstatus; // Machine status register
 		u64
-		mscratch, // √ Machine Scratch 它暂时存放一个字大小的数据 Scratch register for machine trap handlers
+		mscratch, // Scratch register for machine trap handlers
 		mepc,	 // Machine exception program counter
 		satp,	 // Supervisor address translation and protection, read-only as 0 in this work
-		mcause,  // √ Machine Exception Cause 它指示发生异常的种类 Machine trap cause
+		mcause,  // Machine trap cause
 		mcycle,  // Counter
-		mtval;   // √ Machine Trap Value 它保存了trap的附加信息：地址例外中出错的地址、发生非法指令例外的指令本身，对于其他异常，它的值为 0。
+		mtval;
 	} csr_regs_t;
 	
 endpackage

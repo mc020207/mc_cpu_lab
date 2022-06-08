@@ -13,7 +13,7 @@ LUTRAM_DualPort #(
 	.strobe(),
 	.wdata(),
 	.rdata_1(),
-	.rdata2()
+	.rdata_2()
 );
 
 RAM_TrueDualPort #(

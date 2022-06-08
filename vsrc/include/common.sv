@@ -1,16 +1,12 @@
 `ifndef COMMON_SV
 `define COMMON_SV
-
 `ifdef VERILATOR
 `include "include/config.sv"
 `endif
-
 import config_pkg::*;
-
 package common;
 	// parameters
 	import config_pkg::*;
-    
 	parameter XLEN = 64;
 	parameter MXLEN = XLEN;
 	parameter LINK_REG_ID = 1;
@@ -18,8 +14,11 @@ package common;
 
 	// typedefs
 	typedef logic[127:0] u128;
+    typedef logic[111:0] u112;
 	typedef logic[63:0] u64;
-	typedef logic[43:0] u44;
+	typedef logic[55:0] u56;
+    typedef logic[53:0] u54;
+    typedef logic[43:0] u44;
 	typedef logic[31:0] u32;
 	typedef logic[19:0] u20;
 	typedef logic[15:0] u16;
@@ -38,9 +37,6 @@ package common;
 	typedef logic[2:0]  u3;
 	typedef logic[1:0]  u2;
 	typedef logic 	    u1;
-
-    typedef logic[128:0] u129;
-    typedef logic[64:0] u65;
 
 	typedef u5 creg_addr_t;
 	// typedef u64 word_t;
@@ -119,9 +115,7 @@ package common;
  // for arithmetic overflow detection
  typedef i65 arith_t;
  
- // all addresses and words are 64-bit
- // 指令是32位，指令地址数据地址都是64位
- typedef i32 instr_t;
+ // all addresses and words are 32-bit
  typedef i64 addr_t;
  typedef i64 word_t;
  
@@ -196,28 +190,23 @@ package common;
   * and the strobe should be "0b0100", rather than "0x000000cd"
   * and "0b0001".
   */
-
-// 流水线部分有指令内存接口和数据内存接口
  
  /**
   * data cache bus
   */
  
  typedef struct packed {
-     logic    valid;   // in request? // 判断是否是访存指令 // 指令不是访存指令的话，赋值'0
-     addr_t   addr;    // target address // 内存位置
-     msize_t  size;    // number of bytes // (lab2) 有时候访存不是一个字为单位，比如C++中的bool操作，这时需要指定访存的字节
+     logic    valid;   // in request?
+     addr_t   addr;    // target address
+     msize_t  size;    // number of bytes
      strobe_t strobe;  // which bytes are enabled? set to zeros for read request
-                        // (lab2) 其实这是配合size的，指定某些位赋值
-                        // 在lab1中赋值'0或'1，代表这个请求不是或是写请求
-     word_t   data;    // the data to write // 写入数据
+     word_t   data;    // the data to write
  } dbus_req_t;
  
  typedef struct packed {
-      // 在后面的实验存在内存延迟的时候，判断数据、地址有没有到
      logic  addr_ok;  // is the address accepted by cache?
      logic  data_ok;  // is the field "data" valid?
-     word_t data;     // the data read from cache // 输出数据
+     word_t data;     // the data read from cache
  } dbus_resp_t;
  
  /**
@@ -228,15 +217,13 @@ package common;
   */
  
  typedef struct packed {
-     logic  valid;  // in request? // 判断是否是访存指令
-     addr_t addr;   // target address // 内存位置
+     logic  valid;  // in request?
+     addr_t addr;   // target address
  } ibus_req_t;
  
  typedef struct packed {
-     // 在后面的实验存在内存延迟的时候，判断数据地址有没有到
      logic  addr_ok;  // is the address accepted by cache?
      logic  data_ok;  // is the field "data" valid?
-     // 输出数据
      u32 data;        // the data read from cache
  } ibus_resp_t;
  
@@ -292,5 +279,8 @@ typedef struct packed {
 	u64 data;
 } mwrite_req;
 
+
+
 endpackage
+
 `endif
