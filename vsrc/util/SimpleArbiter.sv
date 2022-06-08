@@ -2,7 +2,7 @@
 `define __SIMPLEARBITER_SV
 
 `ifdef VERILATOR
-
+`include "include/common.sv"
 `else
 
 `endif

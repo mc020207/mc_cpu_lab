@@ -47,16 +47,16 @@ module VCacheTop
      * it will possibly become a 1d array of uint32_t.
      */
     // typedef word_t [15:0] cache_line_t;
-    
+    //
     // /* verilator tracing_off */
     // cache_line_t [3:0] mem /* verilator public_flat_rd */;
     // /* verilator tracing_on */
-    
+    //
     // for (genvar i = 0; i < 4; i++) begin
 	// 	   for (genvar j = 0; j < 4; i++)
     //     		assign mem[i][j] = top.xxx.yyy.zzz.lutrams[i].ram_inst.mem[j];
     // end
-    
+
 
 `endif
 endmodule

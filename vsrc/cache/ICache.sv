@@ -27,7 +27,6 @@ module ICache
 	);
 	assign iresp = `DRESP_TO_IRESP(dresp, ireq);
 
-
 `else
 
 	dbus_resp_t dresp;

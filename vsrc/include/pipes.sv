@@ -1,98 +1,104 @@
 `ifndef __PIPES_SV
 `define __PIPES_SV
-`ifdef VERILATOR
+
+`ifdef  VERILATOR
 `include "include/common.sv"
+`else
 `endif
+
 package pipes;
 	import common::*;
-/* Define instrucion decoding rules here */
 
-// parameter F7_RI = 7'bxxxxxxx;
-parameter F7_ALUI=   7'b0010011;
-parameter F7_ALU=    7'b0110011;
-parameter F7_ALUW=	 7'b0111011;
-parameter F7_ALUIW=	 7'b0011011;
-parameter F7_LUI=    7'b0110111;
-parameter F7_JAL=    7'b1101111;
-parameter F7_BRANCH= 7'b1100011;
-parameter F7_LD=     7'b0000011;
-parameter F7_SD=     7'b0100011;
-parameter F7_AUIPC=  7'b0010111;
-parameter F7_JALR=   7'b1100111;
+	// exception
+	typedef enum logic [3:0] {
+		NOEX, INSTR_ADDR, INSTR_TYPE, LOAD_ADDR, STORE_ADDR, ENV_CALL
+	} exception_t;
 
-parameter F3_ADD=3'b000;
-parameter F3_XOR=3'b100;
-parameter F3_OR=3'b110;
-parameter F3_AND=3'b111;
-parameter F3_BEQ=3'b000;
-parameter F3_BNE=3'b001;
-parameter F3_BLT=3'b100;
-parameter F3_DIV=3'b100;
-parameter F3_REM=3'b110;
-parameter F3_DIVU=3'b101;
-parameter F3_REMU=3'b111;
-parameter F3_BGE=3'b101;
-parameter F3_BLTU=3'b110;
-parameter F3_BGEU=3'b111;
-parameter F3_SLT=3'b010;
-parameter F3_SLTU=3'b011;
-parameter F3_SLL=3'b001;
-parameter F3_SR=3'b101;
+	// F
+	typedef struct packed {
+		addr_t 		pc;
+		instr_t 	raw_instr; // 指令
+		exception_t ex;
+	} fetch_data_t;
 
-parameter F7_FIRST_ADD=7'b0000000;
-parameter F7_FIRST_SUB=7'b0100000;
-parameter F7_FIRST_MUL=7'b0000001;
+	// D
+	typedef enum logic [7:0] {  // logic 多分配可以，不能少分配，不然编译报错
+		UNKNOWN, // 0
+		ADDI , XORI , ORI  , ANDI  , SLTI  , SLTIU , SLLI, SRLI, SRAI,
+		ADD  , SUB  , XOR  , OR    , AND   , SLL   , SLT , SLTU, SRL , SRA,
+		ADDIW, SLLIW, SRLIW, SRAIW , 
+		ADDW , SUBW , SLLW , SRLW  , SRAW  , 
+		LUI  , AUIPC,
+		BEQ  , BNE  , BLT  , BGE   , BLTU  , BGEU  ,
+		JAL  , JALR ,
+		LD   , LB   , LH   , LW    , LBU   , LHU   , LWU ,
+		SD   , SB   , SH   , SW    ,
+		MUL  , MULW , DIV  , DIVW  , DIVU  , DIVUW , REM , REMW , REMU, REMUW,
+		CSRRW, CSRRS, CSRRC, CSRRWI, CSRRSI, CSRRCI, MRET, ECALL
+	} decode_op_t;
 
-/* Define pipeline structures here */
-typedef enum logic[5:0] {
-	UNKNOWN,ALUI,ALU,ALUW,ALUIW,LUI,JAL,BEQ,LD,SD,AUIPC,JALR,BNE,BLT,BGE,BLTU,BGEU
-} decode_op_t;
-typedef enum logic [4:0] {
-	NOTALU,ALU_ADD,ALU_XOR,ALU_OR,ALU_AND,ALU_SUB,ALU_LUI,ALU_COMPARE,ALU_SMALL,ALU_SMALLU,ALU_SLT,
-	ALU_SLTU,ALU_SLL,ALU_SRL,ALU_SRA,ALU_MULT,ALU_DIV,ALU_REM,ALU_DIVU,ALU_REMU
-} alufunc_t;
-typedef struct packed {
-	u1 ismem;
-	creg_addr_t dst;// 不是写操作该数置为0
-	word_t data;
-} tran_t;
-typedef struct packed {
-	decode_op_t op;
-	alufunc_t alufunc;
-	u1 regwrite;
-} contral_t;
-typedef struct packed {
-	u1 valid;
-	u32 raw_instr;
-	u64 pc;
-} fetch_data_t;
-typedef struct packed {
-	u1 valid;
-	u64 pc;
-	u32 raw_instr;
-	contral_t ctl;
-	creg_addr_t dst;
-	word_t srca, srcb;	
-	word_t rd2,rd1;
-} decode_data_t;
-typedef struct packed {
-	u64 pc;
-	u1 valid;
-	u32 raw_instr;
-	contral_t ctl;
-	creg_addr_t dst;
-	word_t rd2;
-	word_t result;
-} excute_data_t;
-typedef struct packed {
-	u64 pc;
-	u1 valid;
-	u32 raw_instr;
-	contral_t ctl;
-	creg_addr_t dst;
-	word_t result;
-	word_t addr;
-} memory_data_t;
+	typedef enum logic [7:0] {
+		ALU_UNKNOWN,
+		ALU_ADD, ALU_XOR, ALU_OR, ALU_AND, ALU_SUB,
+		ALU_ADDW, ALU_SUBW,
+		ALU_EQ, ALU_NEQ, ALU_LT, ALU_LTU, ALU_GE, ALU_GEU,
+		ALU_SLL, ALU_SRL, ALU_SRA,
+		ALU_SLLW, ALU_SRLW, ALU_SRAW,
+		ALU_MUL, ALU_MULW, ALU_DIV, ALU_DIVW, ALU_REM, ALU_REMW,
+		ALU_CSR
+	} alufunc_t;
+
+	typedef enum logic [2:0] {
+		R0, R1, R2
+	} reg_usage_t;
+
+	typedef struct packed {
+		decode_op_t op;	      // 操作
+		alufunc_t  	alufunc;  // ALU操作
+		logic       regwrite; // 寄存器写信号
+		reg_usage_t regusage; // 寄存器使用
+	} control_t;
+
+	typedef struct packed {
+		addr_t		pc;
+		instr_t 	raw_instr; // 指令
+		control_t   ctl;
+		word_t		imm;
+		creg_addr_t dst;
+		exception_t ex;
+	} decode_data_t;
+
+	// E
+	typedef enum u1 { INIT, DOING } state_t;
+	typedef struct packed {
+		addr_t		pc, pc_nxt;
+		instr_t 	raw_instr; // 指令
+		control_t   ctl;
+		word_t		imm, rst, srca, srcb;
+		creg_addr_t dst;
+		exception_t ex;
+	} execute_data_t;
+
+	// M
+	typedef struct packed {
+		addr_t		pc;
+		instr_t 	raw_instr; // 指令
+		control_t   ctl;
+		word_t		imm, rst, srca, srcb;
+		creg_addr_t dst;
+		exception_t ex;
+	} memory_data_t;
+
+	// stall	
+	typedef enum logic [3:0] {
+		NOSTALL, STALLF, STALLE, STALLM, STALLW
+	} stall_t;
+
+	// flush
+	typedef enum logic [3:0] {
+		NOFLUSH, FLUSHM, FLUSHW
+	} flush_t;
+
 endpackage
 
 `endif
