@@ -17,7 +17,8 @@ module immediate
     input u32 raw_instr,
     output word_t rd2,rd1,
     output u1 bubble,
-    input logic bubble1,bubble2
+    input logic bubble1,bubble2,
+    input word_t csr
 );
     always_comb begin      
         bubble=0;
@@ -70,10 +71,20 @@ module immediate
                 rd1=pc;
                 rd2=4;
             end
+            CSR : begin
+                rd2=scra;
+                rd1=csr;
+                bubble=bubble1;
+            end
+            CSRI : begin
+                rd2={59'b0, raw_instr[19:15]};
+                rd1=csr;
+                bubble=0;
+            end
             default: begin
-                rd1=scra;
-                rd2=scrb;
-                bubble=bubble1|bubble2;
+                // rd1=scra;
+                // rd2=scrb;
+                // bubble=bubble1|bubble2;
             end
         endcase 
     end

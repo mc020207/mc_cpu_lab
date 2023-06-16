@@ -19,7 +19,7 @@ make.exe: *** No rule to make target 'all'.  Stop.
 # This is free software: you are free to change and redistribute it.
 # There is NO WARRANTY, to the extent permitted by law.
 
-# Make data base, printed on Wed Jun 08 12:36:09 2022
+# Make data base, printed on Mon Jul 18 20:27:45 2022
 
 # Variables
 
@@ -39,8 +39,6 @@ SRC = vsrc
 MAKEFLAGS = pqrR
 # makefile (from 'verilate/Makefile.verilate.mk', line 64)
 SV_FLAGS = --cc -sv --relative-includes --output-split 6000 --trace-fst --trace-structs --no-trace-params --bbox-unsup --Mdir $(SV_BUILD) --top-module $(SV_NAME) --prefix $(SV_PREFIX) $(SV_INCLUDES) $(SV_WARNINGS) $(SV_EXTRA_FLAGS) -CFLAGS -O3 -CFLAGS -flto
-# environment
-VSCODE_LOG_NATIVE = false
 # makefile (from 'verilate/Makefile.vsim.mk', line 7)
 VLIBRARY = $(SV_BUILD)/$(SV_PREFIX)__ALL.a
 # makefile (from 'verilate/Makefile.include', line 1)
@@ -58,7 +56,7 @@ VINCLUDE = verilate/include
 # automatic
 ^D = $(patsubst %/,%,$(patsubst %\,%,$(dir $^)))
 # makefile
-CURDIR := c:/Users/Administrator/Desktop/2022Spring/Arch-2022Spring-FDU_lyj
+CURDIR := d:/��ѧ/����/0.�������ñʼ�/�������ɽṹ/ʵ�鲿��/2022Spring_final/Arch-2022Spring-FDU
 # default
 SHELL := sh.exe
 # environment
@@ -70,7 +68,7 @@ SIM_TOP_V = $(BUILD_DIR)/$(SIM_TOP).v
 # environment
 WINDIR = C:\WINDOWS
 # environment
-VSCODE_NLS_CONFIG = {"locale":"zh-cn","availableLanguages":{"*":"zh-cn"},"_languagePackId":"42e84e0914b17800d483f69e299e1b00.zh-cn","_translationsConfigFile":"C:\\Users\\Administrator\\AppData\\Roaming\\Code\\clp\\42e84e0914b17800d483f69e299e1b00.zh-cn\\tcf.json","_cacheRoot":"C:\\Users\\Administrator\\AppData\\Roaming\\Code\\clp\\42e84e0914b17800d483f69e299e1b00.zh-cn","_resolvedLanguagePackCoreLocation":"C:\\Users\\Administrator\\AppData\\Roaming\\Code\\clp\\42e84e0914b17800d483f69e299e1b00.zh-cn\\c3511e6c69bb39013c4a4b7b9566ec1ca73fc4d5","_corruptedFile":"C:\\Users\\Administrator\\AppData\\Roaming\\Code\\clp\\42e84e0914b17800d483f69e299e1b00.zh-cn\\corrupted.info","_languagePackSupport":true}
+VSCODE_NLS_CONFIG = {"locale":"zh-cn","availableLanguages":{"*":"zh-cn"},"_languagePackId":"1d735750dbb1b9066c7513078396ba0f.zh-cn","_translationsConfigFile":"C:\\Users\\Administrator\\AppData\\Roaming\\Code\\clp\\1d735750dbb1b9066c7513078396ba0f.zh-cn\\tcf.json","_cacheRoot":"C:\\Users\\Administrator\\AppData\\Roaming\\Code\\clp\\1d735750dbb1b9066c7513078396ba0f.zh-cn","_resolvedLanguagePackCoreLocation":"C:\\Users\\Administrator\\AppData\\Roaming\\Code\\clp\\1d735750dbb1b9066c7513078396ba0f.zh-cn\\b06ae3b2d2dbfe28bca3134cc6be65935cdfea6a","_corruptedFile":"C:\\Users\\Administrator\\AppData\\Roaming\\Code\\clp\\1d735750dbb1b9066c7513078396ba0f.zh-cn\\corrupted.info","_languagePackSupport":true}
 # environment
 PYCHARM COMMUNITY EDITION = D:\PyCharm Community Edition 2020.3.3\bin;
 # makefile (from 'Makefile', line 12)
@@ -91,6 +89,8 @@ MAKEFILE_LIST :=  Makefile Makefile.include verilate/Makefile.include verilate/M
 CXX_TARGET_FILES := verilate/vsrc/VCacheTop/vmain.cpp verilate/vsrc/VCacheTop/tests.cpp verilate/vsrc/VCacheTop/mycache.cpp verilate/vsrc/VCacheTop/cache_ref.cpp
 # makefile (from 'Makefile.include', line 16)
 SIM_TOP = SimTop
+# environment
+FPS_BROWSER_USER_PROFILE_STRING = Default
 # makefile (from 'Makefile', line 3)
 SYSTEMVERILOG_FILE = $(shell find ./vsrc -name '*.sv')
 # environment
@@ -99,8 +99,6 @@ TMP = C:\Users\ADMINI~1\AppData\Local\Temp
 TOP = TopMain
 # makefile (from 'verilate/Makefile.vsim.mk', line 69)
 CXXFLAGS = -std=c++17 -g $(CXX_INCLUDES) $(CXX_WARNINGS) $(CXX_EXTRA_FLAGS) -O2 -march=native -flto
-# environment
-VSCODE_VERBOSE_LOGGING = true
 # environment
 WEBSTORM = E:\E_programfile\WebStorm 2021.3.3\bin;
 # environment
@@ -112,9 +110,7 @@ DATAWIDTH = 64
 # makefile (from 'Makefile', line 2)
 VERILOG_FILE = $(shell find ./vsrc -name '*.v')
 # environment
-VSCODE_IPC_HOOK_EXTHOST = \\.\pipe\vscode-ipc-715a8006-0230-46e2-9af6-9695b5d8e265-sock
-# environment
-VSCODE_CWD = C:\Users\Administrator\Desktop\2022Spring
+VSCODE_CWD = D:\��ѧ\����\0.�������ñʼ�\�������ɽṹ\ʵ�鲿��\2022Spring_final
 # default
 MAKE_HOST := x86_64-w64-mingw32
 # environment
@@ -140,8 +136,6 @@ ALLUSERSPROFILE = C:\ProgramData
 # makefile (from 'verilate/Makefile.verilate.mk', line 5)
 SV_MKFILE = $(SV_BUILD)/$(SV_PREFIX).mk
 # environment
-VSCODE_LOG_STACK = false
-# environment
 NUMBER_OF_PROCESSORS = 4
 # environment
 ELECTRON_RUN_AS_NODE = 1
@@ -160,11 +154,9 @@ INTELLIJ IDEA = E:\E_programfile\IntelliJ IDEA 2021.3.3\bin;
 # automatic
 %F = $(notdir $%)
 # environment
-CHROME_CRASHPAD_PIPE_NAME = \\.\pipe\crashpad_4200_LAAPPRJWTLTDAVMA
+CHROME_CRASHPAD_PIPE_NAME = \\.\pipe\crashpad_7252_TQSYZWZVDRVVDOJN
 # makefile (from 'verilate/Makefile.vsim.mk', line 12)
 CXX_ROOT = $(VSOURCE)/$(VROOT)
-# environment
-VSCODE_PIPE_LOGGING = true
 # makefile (from 'verilate/Makefile.vsim.mk', line 54)
 CXX_LINKS = -lz -lpthread -lstdc++fs
 # environment
@@ -198,9 +190,9 @@ PUBLIC = C:\Users\Public
 # environment
 VSCODE_AMD_ENTRYPOINT = vs/workbench/api/node/extensionHostProcess
 # environment
-VSCODE_CODE_CACHE_PATH = C:\Users\Administrator\AppData\Roaming\Code\CachedData\c3511e6c69bb39013c4a4b7b9566ec1ca73fc4d5
+VSCODE_CODE_CACHE_PATH = C:\Users\Administrator\AppData\Roaming\Code\CachedData\b06ae3b2d2dbfe28bca3134cc6be65935cdfea6a
 # environment
-APPLICATION_INSIGHTS_NO_DIAGNOSTIC_CHANNEL = true
+APPLICATION_INSIGHTS_NO_DIAGNOSTIC_CHANNEL = 1
 # environment
 COMMONPROGRAMFILES = C:\Program Files\Common Files
 # environment
@@ -266,7 +258,7 @@ PROCESSOR_IDENTIFIER = Intel64 Family 6 Model 78 Stepping 3, GenuineIntel
 # environment
 OS = Windows_NT
 # environment
-VSCODE_IPC_HOOK = \\.\pipe\9e7283c68e6159fd1e9872b65f264be5-1.67.2-main-sock
+VSCODE_IPC_HOOK = \\.\pipe\9e7283c68e6159fd1e9872b65f264be5-1.69.1-main-sock
 # environment
 HOMEPATH = \Users\Administrator
 # environment
@@ -344,13 +336,15 @@ LANG = C
 # environment
 PROCESSOR_LEVEL = 6
 # environment
-VSCODE_PID = 4200
+FPS_BROWSER_APP_PROFILE_STRING = Internet Explorer
+# environment
+VSCODE_PID = 7252
 # makefile (from 'Makefile.include', line 23)
 SCALA_OPTS = $(SIMTOP) -td $(@D) --output-file $(@F) --infer-rw $(FPGATOP) --repl-seq-mem -c:$(FPGATOP):-o:$(@D)/$(@F).conf BOARD=$(BOARD) CORE=$(CORE)
 # environment
 USERDOMAIN_ROAMINGPROFILE = USER-20200908RA
 # variable set hash-table stats:
-# Load=163/1024=16%, Rehash=0, Collisions=56/404=14%
+# Load=160/1024=16%, Rehash=0, Collisions=56/401=14%
 
 # Pattern-specific Variable Values
 
@@ -358,18 +352,18 @@ USERDOMAIN_ROAMINGPROFILE = USER-20200908RA
 
 # Directories
 
-# vsrc/ram (key c:/Users/Administrator/Desktop/2022Spring/Arch-2022Spring-FDU_lyj/vsrc/ram, mtime 1654662753): 7 files, no impossibilities.
-# . (key c:/Users/Administrator/Desktop/2022Spring/Arch-2022Spring-FDU_lyj, mtime 1654662789): 29 files, no impossibilities.
-# vsrc/include (key c:/Users/Administrator/Desktop/2022Spring/Arch-2022Spring-FDU_lyj/vsrc/include, mtime 1654662753): 8 files, no impossibilities.
-# verilate/include/thirdparty (key c:/Users/Administrator/Desktop/2022Spring/Arch-2022Spring-FDU_lyj/verilate/include/thirdparty, mtime 1654662718): 4 files, no impossibilities.
-# vsrc/util (key c:/Users/Administrator/Desktop/2022Spring/Arch-2022Spring-FDU_lyj/vsrc/util, mtime 1654662753): 9 files, no impossibilities.
-# verilate/vsrc/VCacheTop (key c:/Users/Administrator/Desktop/2022Spring/Arch-2022Spring-FDU_lyj/verilate/vsrc/VCacheTop, mtime 1654662718): 11 files, no impossibilities.
-# vsrc/cache (key c:/Users/Administrator/Desktop/2022Spring/Arch-2022Spring-FDU_lyj/vsrc/cache, mtime 1654662753): 4 files, no impossibilities.
+# vsrc/ram (key d:/��ѧ/����/0.�������ñʼ�/�������ɽṹ/ʵ�鲿��/2022Spring_final/Arch-2022Spring-FDU/vsrc/ram, mtime 1654768263): 7 files, no impossibilities.
+# . (key d:/��ѧ/����/0.�������ñʼ�/�������ɽṹ/ʵ�鲿��/2022Spring_final/Arch-2022Spring-FDU, mtime 1654768264): 26 files, no impossibilities.
+# vsrc/include (key d:/��ѧ/����/0.�������ñʼ�/�������ɽṹ/ʵ�鲿��/2022Spring_final/Arch-2022Spring-FDU/vsrc/include, mtime 1654768263): 7 files, no impossibilities.
+# verilate/include/thirdparty (key d:/��ѧ/����/0.�������ñʼ�/�������ɽṹ/ʵ�鲿��/2022Spring_final/Arch-2022Spring-FDU/verilate/include/thirdparty, mtime 1654768248): 4 files, no impossibilities.
+# vsrc/util (key d:/��ѧ/����/0.�������ñʼ�/�������ɽṹ/ʵ�鲿��/2022Spring_final/Arch-2022Spring-FDU/vsrc/util, mtime 1654768264): 9 files, no impossibilities.
+# verilate/vsrc/VCacheTop (key d:/��ѧ/����/0.�������ñʼ�/�������ɽṹ/ʵ�鲿��/2022Spring_final/Arch-2022Spring-FDU/verilate/vsrc/VCacheTop, mtime 1654768248): 11 files, no impossibilities.
+# vsrc/cache (key d:/��ѧ/����/0.�������ñʼ�/�������ɽṹ/ʵ�鲿��/2022Spring_final/Arch-2022Spring-FDU/vsrc/cache, mtime 1654768263): 4 files, no impossibilities.
 # src: could not be stat'd.
-# verilate/include (key c:/Users/Administrator/Desktop/2022Spring/Arch-2022Spring-FDU_lyj/verilate/include, mtime 1654662718): 14 files, no impossibilities.
-# verilate/vsrc (key c:/Users/Administrator/Desktop/2022Spring/Arch-2022Spring-FDU_lyj/verilate/vsrc, mtime 1654662718): 10 files, no impossibilities.
+# verilate/include (key d:/��ѧ/����/0.�������ñʼ�/�������ɽṹ/ʵ�鲿��/2022Spring_final/Arch-2022Spring-FDU/verilate/include, mtime 1654768248): 14 files, no impossibilities.
+# verilate/vsrc (key d:/��ѧ/����/0.�������ñʼ�/�������ɽṹ/ʵ�鲿��/2022Spring_final/Arch-2022Spring-FDU/verilate/vsrc, mtime 1654768248): 10 files, no impossibilities.
 
-# 96 files, no impossibilities in 10 directories.
+# 92 files, no impossibilities in 10 directories.
 
 # Implicit Rules
 
@@ -498,7 +492,8 @@ vsrc/ram/template.sv:
 # Not a target:
 verilate/vsrc/model.cpp:
 #  Implicit rule search has not been done.
-#  Modification time never checked.
+#  Modificatio 
+n time never checked.
 #  File has not been updated.
 
 test-lab1a: sim
@@ -550,7 +545,7 @@ test-cache-gdb:
 # Not a target:
 Makefile:
 #  Implicit rule search has been done.
-#  Last modified 2022-06-07 10:34:12
+#  Last modified 2022-06-09 16:18:50
 #  File has been updated.
 #  Successfully updated.
 
@@ -615,7 +610,7 @@ test-lab4: sim
 #  Modification time never checked.
 #  File has not been updated.
 #  recipe to execute (from 'Makefile', line 60):
-	TEST=$(TEST) ./build/emu --diff ./riscv64-nemu-interpreter-so -i ./ready-to-run/lab4/all-test-priv.bin $(VOPT) || true
+	TEST=$(TEST) ./build/emu --no-diff -i ./ready-to-run/lab4/all-test-priv.bin $(VOPT) || true
 
 # Not a target:
 verilate/vsrc/VCacheTop/defs.h:
@@ -881,8 +876,7 @@ vsim-gdb: build/gcc+optimized/VCacheTop/vmain
 build/gcc+optimized/VCacheTop/vmain: build/gcc+optimized/VCacheTop/obj/verilate/vsrc/confreg.o build/gcc+optimized/VCacheTop/obj/verilate/vsrc/main.o build/gcc+optimized/VCacheTop/obj/verilate/vsrc/memory.o build/gcc+optimized/VCacheTop/obj/verilate/vsrc/model.o build/gcc+optimized/VCacheTop/obj/verilate/vsrc/common.o build/gcc+optimized/VCacheTop/obj/verilate/vsrc/testbench.o build/gcc+optimized/VCacheTop/obj/verilate/vsrc/cbus_device.o build/gcc+optimized/VCacheTop/obj/verilate/vsrc/VCacheTop/vmain.o build/gcc+optimized/VCacheTop/obj/verilate/vsrc/VCacheTop/tests.o build/gcc+optimized/VCacheTop/obj/verilate/vsrc/VCacheTop/mycache.o build/gcc+optimized/VCacheTop/obj/verilate/vsrc/VCacheTop/cache_ref.o build/gcc+optimized/VCacheTop/obj//usr/share/verilator/include/verilated.o build/gcc+optimized/VCacheTop/obj//usr/share/verilator/include/verilated_fst_c.o build/gcc+optimized/VCacheTop/verilated/VModel__ALL.a
 #  Implicit rule search has not been done.
 #  Modification time never checked.
-#  File has not been upd 
-ated.
+#  File has not been updated.
 #  recipe to execute (from 'verilate/Makefile.vsim.mk', line 91):
 	$(CXX) $(CXXFLAGS) $^ $(CXX_LINKS) -o $@
 
@@ -1035,12 +1029,12 @@ verilate/vsrc/VCacheTop/cache_ref.h:
 
 # No general ('VPATH' variable) search path.
 
-# strcache buffers: 1 (0) / strings = 193 / storage = 3995 B / avg = 20 B
-# current buf: size = 8162 B / used = 3995 B / count = 193 / avg = 20 B
+# strcache buffers: 1 (0) / strings = 189 / storage = 3964 B / avg = 20 B
+# current buf: size = 8162 B / used = 3964 B / count = 189 / avg = 20 B
 
-# strcache performance: lookups = 330 / hit rate = 41%
+# strcache performance: lookups = 326 / hit rate = 42%
 # hash-table stats:
-# Load=193/8192=2%, Rehash=0, Collisions=16/330=5%
-# Finished Make data base on Wed Jun 08 12:36:09 2022
+# Load=189/8192=2%, Rehash=0, Collisions=18/326=6%
+# Finished Make data base on Mon Jul 18 20:27:45 2022
 
  

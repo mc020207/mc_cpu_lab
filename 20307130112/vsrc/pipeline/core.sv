@@ -8,6 +8,7 @@
 `include "pipeline/decode/decode.sv"
 `include "pipeline/execute/execute.sv"
 `include "pipeline/memory/memory.sv"
+`include "pipeline/regfile/csr.sv"
 `else
 
 `endif
@@ -19,7 +20,8 @@ module core
 	output ibus_req_t  ireq,
 	input  ibus_resp_t iresp,
 	output dbus_req_t  dreq,
-	input  dbus_resp_t dresp
+	input  dbus_resp_t dresp,
+	input logic trint, swint, exint
 );
 	fetch_data_t dataF;
 	decode_data_t dataD;
@@ -27,24 +29,28 @@ module core
 	memory_data_t dataM;
 	creg_addr_t ra1,ra2;
 	word_t rd1,rd2;
-	u1 stopd,stope,stopm,branch;
+	u1 stopf,stopd,stope,stopm,branch;
+	u1 flushde,flushall;
 	u64 jump;
-	tran_t trane,tranm,trand;
-
+	tran_t trane,tranm,tranw;
+	u12 csrra;
+	word_t csrrd;
+	u64 csrpc;
 	fetch fetch(
 		.clk,.reset,
 		.ireq,.iresp,
 		.branch,.jump,
 		.stopd,.stope,.stopm,
-		.dataF
+		.dataF,.stopf,.flushde,.flushall,.csrpc
 	);
 	decode decode (
 		.clk,.reset,
 		.dataF,.dataD,
 		.ra1,.ra2,.rd1,.rd2,
 		.branch,
-		.trane,.tranm,
-		.stopd,.stope,.stopm,.trand
+		.trane,.tranm,.tranw,
+		.stopd,.stope,.stopm,
+		.csrra,.csrrd,.flushde
 	);
 	regfile regfile(
 		.clk, .reset,
@@ -53,35 +59,35 @@ module core
 		.wa(dataM.dst),
 		.wd(dataM.result)
 	);
+	csr csrreg(
+		.clk,.reset,
+		.ra(csrra),.rd(csrrd),
+		.dataM,.csrpc,.trint,.swint,.exint,
+		.stopf,.stopm,.flushde,.flushall
+	);
 	execute execute(
 		.clk,.reset,
 		.dataD,.dataE,
 		.branch,.jump,
-		.stope,.stopm
+		.trane,.stope,.stopm,.flushde
 	);
 	memory memory(
 		.clk,.reset,
 		.dataE,.dataM(dataM),
 		.dreq,.dresp,
-		.stopm
+		.tranm,.stopm,.flushde,.flushall
 	);
 	logic skip;
 	assign skip=(dataM.ctl.op==SD||dataM.ctl.op==LD)&&dataM.addr[31]==0;
-	assign tranm.dst=(dataM.ctl.regwrite&dataM.valid)?dataM.dst:0;
-	assign tranm.data=dataM.result;
-	assign tranm.ismem=1;
-	assign trane.dst=(dataE.ctl.regwrite&dataE.valid)?dataE.dst:0;
-	assign trane.data=dataE.result;
-	assign trane.ismem=(dataE.ctl.op==SD||dataE.ctl.op==LD);
-	assign trand.dst=(dataD.ctl.regwrite&dataD.valid)?dataD.dst:0;
-	assign trand.data=0;
-	assign trand.ismem=(dataD.ctl.op==SD||dataD.ctl.op==LD);
+	assign tranw.dst=(dataM.ctl.regwrite&dataM.valid&&(dataM.error==0))?dataM.dst:0;
+	assign tranw.data=dataM.result;
+	assign tranw.ismem=1;
 `ifdef VERILATOR
 	DifftestInstrCommit DifftestInstrCommit(
 		.clock              (clk),
 		.coreid             (0),
 		.index              (0),
-		.valid              (~reset&dataM.valid),
+		.valid              (~reset&&dataM.valid&&(dataM.error==0)),
 		.pc                 (dataM.pc),
 		.instr              (dataM.raw_instr),
 		.skip               (skip),
@@ -142,25 +148,25 @@ module core
 	DifftestCSRState DifftestCSRState(
 		.clock              (clk),
 		.coreid             (0),
-		.priviledgeMode     (3),
-		.mstatus            (0),
-		.sstatus            (0),
-		.mepc               (0),
+		.priviledgeMode     (csrreg.mode_nxt),
+		.mstatus            (csrreg.regs_nxt.mstatus),
+		.sstatus            (csrreg.regs_nxt.mstatus & 64'h800000030001e000),
+		.mepc               (csrreg.regs_nxt.mepc),
 		.sepc               (0),
-		.mtval              (0),
+		.mtval              (csrreg.regs_nxt.mtval),
 		.stval              (0),
-		.mtvec              (0),
+		.mtvec              (csrreg.regs_nxt.mtvec),
 		.stvec              (0),
-		.mcause             (0),
+		.mcause             (csrreg.regs_nxt.mcause),
 		.scause             (0),
 		.satp               (0),
-		.mip                (0),
-		.mie                (0),
-		.mscratch           (0),
+		.mip                (csrreg.regs_nxt.mip),
+		.mie                (csrreg.regs_nxt.mie),
+		.mscratch           (csrreg.regs_nxt.mscratch),
 		.sscratch           (0),
 		.mideleg            (0),
 		.medeleg            (0)
-	      );
+	);
 	      
 	DifftestArchFpRegState DifftestArchFpRegState(
 		.clock              (clk),

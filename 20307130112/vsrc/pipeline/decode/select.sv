@@ -10,7 +10,7 @@ module select
     import pipes::*;(
     input creg_addr_t ra,
     input word_t rd,
-    input tran_t trane,tranm,trand,
+    input tran_t trane,tranm,tranw,
     output word_t result,
     output logic bubble
 );
@@ -18,15 +18,15 @@ module select
         result=rd;
         bubble=0;
         if (ra!=0) begin
-            if (ra==trand.dst) begin
-                bubble=1;
-            end
-            else if (ra==trane.dst) begin
+            if (ra==trane.dst) begin
                 result=trane.data;
                 bubble=trane.ismem;
             end
             else if (ra==tranm.dst) begin
                 result=tranm.data;
+            end
+            else if (ra==tranw.dst) begin
+                result=tranw.data;
             end
         end
     end

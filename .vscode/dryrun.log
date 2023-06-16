@@ -1,16 +1,16 @@
 make.exe --dry-run --always-make --keep-going --print-directory
-make.exe: Entering directory 'c:/Users/Administrator/Desktop/2022Spring/Arch-2022Spring-FDU_lyj'
+make.exe: Entering directory 'd:/��ѧ/����/0.�������ñʼ�/�������ɽṹ/ʵ�鲿��/2022Spring_final/Arch-2022Spring-FDU'
  
 ϵͳ�Ҳ���ָ����·����
 
 process_begin: CreateProcess(NULL, dirname VCacheTop, ...) failed.
 make.exe: verilate/Makefile.verilate.mk:3: pipe: No error
-
 FIND: ������ʽ����ȷ
 �Ҳ����ļ� - *.svh
+
 �Ҳ����ļ� - *.sv
 
 mkdir -p build
 # cp -r vsrc/* build
-make.exe: Leaving directory 'c:/Users/Administrator/Desktop/2022Spring/Arch-2022Spring-FDU_lyj'
+make.exe: Leaving directory 'd:/��ѧ/����/0.�������ñʼ�/�������ɽṹ/ʵ�鲿��/2022Spring_final/Arch-2022Spring-FDU'
  

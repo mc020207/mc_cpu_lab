@@ -19,7 +19,9 @@ module execute
     output u1 branch,
     output u64 jump,
     input logic stopm,
-    output logic stope
+    output logic stope,
+    output tran_t trane,
+    input u1 flushde
 );
     u1 bubble;
     contral_t ctl;
@@ -34,10 +36,10 @@ module execute
         .alufunc(ctl.alufunc),
         .result(alu_result),
         .choose(ctl.op==ALUW||ctl.op==ALUIW),
-        .ctl,.bubble,.valid(dataD.valid)
+        .ctl,.bubble,.valid(dataD.valid&&(dataD.error==0))
     );
 	offset offset_module(
-        .valid(dataD.valid),
+        .valid(dataD.valid&&(dataD.error==0)),
         .raw_instr,
         .ctl,
         .choose(alu_result),
@@ -55,14 +57,21 @@ module execute
     assign dataE_next.dst=dataD.dst;
     assign dataE_next.rd2=dataD.rd2;
     assign dataE_next.result=alu_result;
-    assign stope=bubble&dataD.valid;
+    assign dataE_next.csrdst=dataD.csrdst;
+    assign dataE_next.csr=dataD.csr;
+    assign dataE_next.error=dataD.error;
+    assign stope=bubble&(dataD.valid&&(dataD.error==0));
+    assign trane.data=alu_result;
+    assign trane.dst=(ctl.regwrite&(dataD.valid&&(dataD.error==0)))?dataD.dst:0;
+    assign trane.ismem=(ctl.op==LD);
     always_ff @( posedge clk ) begin
         if (reset) begin
            dataE.valid<=0;
         end
         else begin
-            if (stopm) dataE<=dataE;
-            else if (bubble&dataD.valid) dataE.valid<=0;
+            if (flushde) dataE.valid<=0;
+            else if (stopm) dataE<=dataE;
+            else if (bubble&(dataD.valid)) dataE.valid<=0;
             else dataE<=dataE_next;
         end
     end

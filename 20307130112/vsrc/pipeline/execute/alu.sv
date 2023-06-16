@@ -35,70 +35,75 @@ module alu
 		c = '0;
 		bubble=0;
 		debug=0;
-		unique case(alufunc)
-			ALU_ADD: c = a + b;
-			ALU_XOR: c = a ^ b;
-			ALU_OR : c = a | b; 
-			ALU_AND: c = a & b;
-			ALU_SUB: c = a - b;
-			ALU_LUI: c = b;
-			ALU_COMPARE: c ={63'b0, (a==b)};
-			ALU_SMALL: c= $signed(a) < $signed(b) ? 64'b1 : 64'b0;
-			ALU_SMALLU: c={63'b0,({1'b0,a}<{1'b0,b})};
-			ALU_SLT: c= $signed(a) < $signed(b) ? 64'b1 : 64'b0;
-			ALU_SLTU: c={63'b0,({1'b0,a}<{1'b0,b})};
-			ALU_SLL: c=a<<b[5:0];
-			ALU_SRL: c=a>>b[5:0];
-			ALU_SRA: c = $signed(a) >>> b[5:0];
-			ALU_MULT: begin
-				c=multiresult+(srcb[0]?srca:0);
-				bubble=~multibubble;
-			end
-			ALU_DIV: begin
-				if (srcb==0) begin
-					c='1;
+		if (ctl.op==CSR||ctl.op==CSRI) begin
+			c=a;
+		end
+		else begin
+			unique case(alufunc)
+				ALU_ADD: c = a + b;
+				ALU_XOR: c = a ^ b;
+				ALU_OR : c = a | b; 
+				ALU_AND: c = a & b;
+				ALU_SUB: c = a - b;
+				ALU_LUI: c = b;
+				ALU_COMPARE: c ={63'b0, (a==b)};
+				ALU_SMALL: c= $signed(a) < $signed(b) ? 64'b1 : 64'b0;
+				ALU_SMALLU: c={63'b0,({1'b0,a}<{1'b0,b})};
+				ALU_SLT: c= $signed(a) < $signed(b) ? 64'b1 : 64'b0;
+				ALU_SLTU: c={63'b0,({1'b0,a}<{1'b0,b})};
+				ALU_SLL: c=a<<b[5:0];
+				ALU_SRL: c=a>>b[5:0];
+				ALU_SRA: c = $signed(a) >>> b[5:0];
+				ALU_MULT: begin
+					c=multiresult+(srcb[0]?srca:0);
+					bubble=~multibubble;
+				end
+				ALU_DIV: begin
+					if (srcb==0) begin
+						c='1;
+						bubble=0;
+					end
+					else begin
+						if (srca[63]==srcb[63]&&$signed(divresult)>=0||srca[63]!=srcb[63]&&$signed(divresult)<=0) c=divresult;
+						else c=0-divresult;
+						bubble=~divbubble;
+					end
+				end
+				ALU_REM: begin
+					if (srcb==0) begin
+						c=srca;
+						bubble=0;
+					end
+					else begin
+						c=remresult;
+						bubble=~divbubble;
+					end
+				end
+				ALU_DIVU: begin
+					if (srcb==0) begin
+						c='1;
+						bubble=0;
+					end
+					else begin
+						c=divuresult;
+						bubble=~divububble;
+					end
+				end
+				ALU_REMU: begin
+					if (srcb==0) begin
+						c=srca;
+						bubble=0;
+					end
+					else begin
+						c=remuresult;
+						bubble=~divububble;					
+					end
+				end
+				default: begin
 					bubble=0;
 				end
-				else begin
-					if (srca[63]==srcb[63]&&$signed(divresult)>=0||srca[63]!=srcb[63]&&$signed(divresult)<=0) c=divresult;
-					else c=0-divresult;
-					bubble=~divbubble;
-				end
-			end
-			ALU_REM: begin
-				if (srcb==0) begin
-					c=srca;
-					bubble=0;
-				end
-				else begin
-					c=remresult;
-					bubble=~divbubble;
-				end
-			end
-			ALU_DIVU: begin
-				if (srcb==0) begin
-					c='1;
-					bubble=0;
-				end
-				else begin
-					c=divuresult;
-					bubble=~divububble;
-				end
-			end
-			ALU_REMU: begin
-				if (srcb==0) begin
-					c=srca;
-					bubble=0;
-				end
-				else begin
-					c=remuresult;
-					bubble=~divububble;					
-				end
-			end
-			default: begin
-				bubble=0;
-			end
-		endcase
+			endcase
+		end
 		if (choose) begin
 			unique case (ctl.alufunc)
 				ALU_SLL: c = a << b[4:0];

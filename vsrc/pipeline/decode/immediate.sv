@@ -77,7 +77,7 @@ module immediate
                 bubble=bubble1;
             end
             CSRI : begin
-                rd2={52'b0,raw_instr[31:20]};
+                rd2={59'b0, raw_instr[19:15]};
                 rd1=csr;
                 bubble=0;
             end

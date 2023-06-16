@@ -18,8 +18,8 @@ module decoder
     u7 f7_first;
     assign f7_first=raw_instr[31:25];
     always_comb begin
-        ctl.op=ALUI;
-        ctl.alufunc=ALU_ADD;
+        ctl.op=UNKNOWN;
+        ctl.alufunc=NOTALU;
         ctl.regwrite=1'b1;
         unique case(f7)
             F7_ALUI:begin
@@ -243,6 +243,49 @@ module decoder
                         
                     end
                 endcase 
+            end
+            F7_CSR:begin
+                ctl.regwrite=1;
+                unique case (f3)
+                    F3_CSRRC:begin
+                        ctl.op=CSR;
+                        ctl.alufunc=ALU_CSRC;
+                    end
+                    F3_CSRRCI:begin
+                        ctl.op=CSRI;
+                        ctl.alufunc=ALU_CSRC;
+                    end
+                    F3_CSRRS:begin
+                        ctl.op=CSR;
+                        ctl.alufunc=ALU_CSRS;
+                    end
+                    F3_CSRRSI:begin
+                        ctl.op=CSRI;
+                        ctl.alufunc=ALU_CSRS;
+                    end
+                    F3_CSRRW:begin
+                        ctl.op=CSR;
+                        ctl.alufunc=ALU_CSRW;
+                    end
+                    F3_CSRRWI:begin
+                        ctl.op=CSRI;
+                        ctl.alufunc=ALU_CSRW;
+                    end
+                    F3_ECALL:begin
+                        ctl.regwrite=0;
+                        if (f7_first==F7_FIRST_ECALL) begin
+                            ctl.op=ECALL;
+                            ctl.alufunc=ALU_ECALL;
+                        end
+                        else begin
+                            ctl.op=MRET;
+                            ctl.alufunc=ALU_MRET;
+                        end
+                    end
+                    default: begin
+                        
+                    end
+                endcase
             end
             F7_LD: begin
                 ctl.op=LD;
